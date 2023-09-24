@@ -10,22 +10,40 @@ the bottom left hand side and PersonB will start at top right of the board. You
 will be prompted to choose how big the board will be and how many moves the
 computer will try before giving up. Have Fun.
 
-*person[0] = distinguish between personA and personB
-*person[1] = x-axis
-*person[2] = y-axis
-*person[3] = number of moves
+*person[0] = x-axis
+*person[1] = y-axis
+*person[2] = number of moves
 int personA[] = {1, 0, 0, 0};
 int personB[] = {2, userDimension, userDimension, 0};
 
 External files: None
 */
 
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
-void wallCheck(int*, int);
-void curLocation(int*);
+bool openFile(const string& filename) {
+  string line;
+  ifstream inputFile(filename);
+
+  if (!inputFile.is_open()) {
+    cerr << "Error: Unable to open file " << filename << endl;
+    return false;
+  }
+
+  while (getline(inputFile, line)) {
+    cout << line << endl;
+  }
+
+  inputFile.close();
+
+  return true;
+}
 
 //checks input string by char array and returns on first
 //encountered non integer character from index 0
@@ -54,64 +72,88 @@ int str2int(string input) {
   return -1;
 }
 
-/*
-rolls a pseudo random dice between 0 and 4.
+int* roll(int proto, int person[], int dimension) {
+  int originalX = person[0];
+  int originalY = person[1];
 
-north = 0, south = 1, east = 2, west = 3.
-*/
-int* roll(int person[], int dimension) {
-  int dir = rand() % 4;
+  while (true) {
+    int dir = -1;
 
-  // y+1
-  if (dir == 0) {
-    person[2]++;
-    person[3]++;
-  }
-  // y-1
-  else if (dir == 1) {
-    person[2]--;
-    person[3]++;
-  }
-  // x+1
-  else if (dir == 2) {
-    person[1]++;
-    person[3]++;
-  }
-  // x-1
-  else if (dir == 3) {
-    person[1]--;
-    person[3]++;
-  }
-  else
-    cerr << "Random Number Generator Error" << endl;
+    if (proto == 4) {
+      dir = rand() % 4;
+    }
+    else if (proto == 8) {
+      dir = rand() % 8;
+    }
+    else {
+      cerr << "Error: Invalid number for protocol, 4 or 8 only!" << endl;
+    }
 
-  wallCheck(person, dimension);
+    // y+1
+    if (dir == 0) {
+      person[1]++;
+      person[2]++;
+    }
+    // y-1
+    else if (dir == 1) {
+      person[1]--;
+      person[2]++;
+    }
+    // x+1
+    else if (dir == 2) {
+      person[0]++;
+      person[2]++;
+    }
+    // x-1
+    else if (dir == 3) {
+      person[0]--;
+      person[2]++;
+    }
+     // x+1 y+1
+    else if (dir == 4) {
+      person[0]++;
+      person[1]++;
+      person[2]++;
+    }
+    // x-1 y+1
+    else if (dir == 5) {
+      person[0]--;
+      person[1]++;
+      person[2]++;
+    }
+    // x+1 y-1
+    else if (dir == 6) {
+      person[0]++;
+      person[1]--;
+      person[2]++;
+    }
+    // x-1 y-1
+    else if (dir == 7) {
+      person[0]--;
+      person[1]--;
+      person[2]++;
+    }
+    else {
+      cerr << "Random Number Generator Error" << endl;
+      continue;
+    }
 
-  return person;
-}
+    if (person[0] < 0 || person[0] > dimension || person[1] < 0 || person[1] > dimension) {
+      person[0] = originalX;
+      person[1] = originalY;
 
-//prevents roll() from going out of bounds
-void wallCheck(int person[], int dimension) {
-  if (person[1] < 0)
-    person[1] = 0;
-  else if (person[1] > dimension)
-    person[1] = dimension;
-  else if (person[2] < 0)
-    person[2] = 0;
-  else if (person[2] > dimension)
-    person[2] = dimension;
-}
-
-//print current location of person
-void curLocation(int person[]) {
-  //personA
-  if(person[0] == 1) {
-    cout << "PersonA: (" << person[1] << "," <<person[2] << ")" << endl;
+      if (proto == 4) {
+        person[3]++;
+      }
+      else if (proto == 8) {
+        person[2]--;
+        person[3]++;
+        continue;
+      }
+    }
+    break;
   }
-  //personB
-  else {
-    cout << "PersonB: (" << person[1] << "," <<person[2] << ")" << endl;
-  }
+    return person;
 }
 
 // Provides error messaging based on invalid, less than, or greater than
@@ -154,11 +196,11 @@ int moveCheck(string str) {
 
 //check if personA and personB meet
 bool locCheck(int personA[], int personB[]) {
-  int total = personA[3] + personB[3];
+  int total = personA[2] + personB[2];
 
-  if(personA[1] == personB[1] && personA[2] == personB[2]) {
+  if(personA[0] == personB[0] && personA[1] == personB[1]) {
     cout << "\nPersonA and PersonB met at the same location. The game is over." << endl;
-    cout << "\tThey met at: (" << personA[1] << "," <<personA[2] << ")" << endl;
+    cout << "\tThey met at: (" << personA[0] << "," <<personA[1] << ")" << endl;
     cout << "\tIt took " << total << " turns for them to meet." << endl;
     return 1;
   }
@@ -168,11 +210,11 @@ bool locCheck(int personA[], int personB[]) {
 
 //check if person exceed the maxMoves
 bool maxmoveCheck(int personA[], int personB[], int maxMoves) {
-  if(personA[3] + personB[3] == maxMoves) {
+  if(personA[2] + personB[2] == maxMoves) {
     cout << "\nYou have reached the maximum number of moves. Try again!" << endl;
     cout << "\tThe people took " << maxMoves << " turns and never met." << endl;
-    cout << "\tPersonA ended up at (" << personA[1] << "," <<personA[2] << "),";
-    cout << " meanwhile, PersonB was at (" << personB[1] << "," <<personB[2] << ")" << endl;
+    cout << "\tPersonA ended up at (" << personA[0] << "," <<personA[1] << "),";
+    cout << " meanwhile, PersonB was at (" << personB[0] << "," <<personB[1] << ")" << endl;
     return 1;
   }
 
@@ -217,17 +259,11 @@ int main() {
   cout <<"PersonB start point: (" << userDimension << "," << userDimension << ")" << endl;
   cout <<"\nLet's go!" << endl;
 
-  /*
-  person[0] = distinguish between personA and personB
-  person[1] = x-axis
-  person[2] = y-axis
-  person[3] = number of moves
-  */
-  int personA[] = {1, 0, 0, 0};
-  int personB[] = {2, userDimension, userDimension, 0};
+  int personA[] = {0, 0, 0, 0};
+  int personB[] = {userDimension, userDimension, 0, 0};
 
   while (1) {
-    roll(personA, userDimension);
+    roll(4, personA, userDimension);
     didTheyMeet = locCheck(personA, personB);
     if ( didTheyMeet == 1 )
       break;
@@ -235,7 +271,7 @@ int main() {
     if ( maxReached == 1 )
       break;
 
-    roll(personB, userDimension);
+    roll(4, personB, userDimension);
     didTheyMeet = locCheck(personA, personB);
     if ( didTheyMeet == 1 )
       break;
@@ -243,6 +279,12 @@ int main() {
     if ( maxReached == 1 )
       break;
   }
+
+  cout << "Total wall hits for PersonA: " << personA[3] << endl;
+  cout << "Total wall hits for PersonB: " << personB[3] << endl;
+
+  cout << "\tTotal moves for PersonA: " << personA[2] << endl;
+  cout << "\tTotal moves for PersonB: " << personB[2] << endl;
 
   return 0;
 }
